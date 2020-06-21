@@ -4,24 +4,45 @@ import { CreateTodoRequest } from '../types/CreateTodoRequest'
 import Axios from 'axios'
 import { UpdateTodoRequest } from '../types/UpdateTodoRequest'
 
-var lastKey: string
-var limit: number
+interface getTodosInterface {
+  todos: Todo[]
+  lastEvaluatedKey: string
+}
 
-export async function getTodos(idToken: string): Promise<Todo[]> {
-  console.log('Fetching todos')
-
-  const response = await Axios.get(
-    `${apiEndpoint}/todos?limit=${limit}&lastKey=${lastKey}`,
-    {
+export async function getTodos(
+  idToken: string,
+  limit?: number,
+  lastKey?: string
+): Promise<getTodosInterface> {
+  console.log(`Fetching todos, ${lastKey}`)
+  var response
+  try {
+    response = await Axios.get(
+      `${apiEndpoint}/todos?limit=${limit}&nextKey=${lastKey}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`
+        }
+      }
+    )
+  } catch (e) {
+    response = await Axios.get(`${apiEndpoint}/todos?limit=${limit}&nextKey=`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${idToken}`
       }
-    }
-  )
+    })
+  }
   console.log('Todos:', response.data)
-  lastKey = response.data.LastEvaluatedKey
-  return response.data.Items
+  // response.data.LastEvaluatedKey
+
+  const stateProps: getTodosInterface = {
+    todos: response.data.Items,
+    lastEvaluatedKey: response.data.LastEvaluatedKey
+  }
+
+  return stateProps
 }
 
 export async function createTodo(
@@ -65,8 +86,7 @@ export async function patchTodoFile(
   fileName: string
 ): Promise<void> {
   await Axios.patch(
-    `${apiEndpoint}/todos/${todoId}`,
-    JSON.stringify({ fileName: fileName }),
+    `${apiEndpoint}/todos/${todoId}/attachment?filename=${fileName}`,
     {
       headers: {
         'Content-Type': 'application/json',

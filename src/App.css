@@ -31,3 +31,14 @@
     transform: rotate(360deg);
   }
 }
+
+.react-datepicker-wrapper,
+.react-datepicker__input-container,
+.react-datepicker__input-container input {
+  display: block;
+  height: 38px;
+  border-radius: 5px;
+  outline: none;
+  border-color: #dededf;
+  /* border-color: aqua; */
+}

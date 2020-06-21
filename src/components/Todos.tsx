@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker'
 import moment from 'moment'
 
 import 'react-datepicker/dist/react-datepicker.css'
+import '../App.css'
 
 import {
   Button,
@@ -34,7 +35,7 @@ interface TodosState {
   newTodoDueDate: string
   loadingTodos: boolean
   startdate: Date
-  attachmentUrl: string
+  lastEvaluatedKey?: string
 }
 
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
@@ -43,8 +44,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     newTodoName: '',
     newTodoDueDate: moment(new Date()).format().substring(0, 10), //new Date().toISOString().substring(0, 10),
     loadingTodos: true,
-    startdate: new Date(),
-    attachmentUrl: ''
+    startdate: new Date()
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,9 +68,11 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         name: this.state.newTodoName,
         dueDate: this.state.newTodoDueDate
       })
+      const resp = await getTodos(this.props.auth.getIdToken())
       this.setState({
-        todos: await getTodos(this.props.auth.getIdToken()), //[...this.state.todos, newTodo],
-        newTodoName: ''
+        todos: resp.todos, //[...this.state.todos, newTodo],
+        newTodoName: '',
+        lastEvaluatedKey: resp.lastEvaluatedKey
       })
     } catch {
       alert('Todo creation failed')
@@ -106,12 +108,26 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     }
   }
 
+  onTodoShowMore = async () => {
+    const resp = await getTodos(
+      this.props.auth.getIdToken(),
+      undefined,
+      this.state.lastEvaluatedKey
+    )
+    this.setState((state) => {
+      const todos = [...state.todos, ...resp.todos]
+      return { todos: todos, lastEvaluatedKey: resp.lastEvaluatedKey }
+    })
+  }
+
   async componentDidMount() {
     try {
-      const todos = await getTodos(this.props.auth.getIdToken())
+      const resp = await getTodos(this.props.auth.getIdToken())
+      console.log(resp)
       this.setState({
-        todos,
-        loadingTodos: false
+        todos: resp.todos,
+        loadingTodos: false,
+        lastEvaluatedKey: resp.lastEvaluatedKey
       })
     } catch (e) {
       alert(`Failed to fetch todos: ${e.message}`)
@@ -121,7 +137,9 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   render() {
     return (
       <div>
-        <Header as="h1">TODOs</Header>
+        <Header as="h1" textAlign="center">
+          TODOs
+        </Header>
 
         {this.renderCreateTodoInput()}
 
@@ -134,36 +152,34 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
 
   renderCreateTodoInput() {
     return (
-      <Grid.Row>
-        <Grid.Column width={16}>
-          <DatePicker
-            dateFormat="yyyy/MM/dd"
-            selected={this.state.startdate}
-            onChange={this.handleDateChange}
-          />
-        </Grid.Column>
-        <Grid.Column width={16}>
-          <Divider />
-        </Grid.Column>
-        <Grid.Column width={16}>
-          <Input
-            action={{
-              color: 'teal',
-              labelPosition: 'left',
-              icon: 'add',
-              content: 'New task',
-              onClick: this.onTodoCreate
-            }}
-            fluid
-            actionPosition="left"
-            placeholder="To change the world..."
-            onChange={this.handleNameChange}
-          />
-        </Grid.Column>
-        <Grid.Column width={16}>
-          <Divider />
-        </Grid.Column>
-      </Grid.Row>
+      <React.Fragment>
+        <Header as="h3">Create new Todos</Header>
+        <Grid.Row style={{ display: 'flex' }}>
+          <Grid.Column>
+            <DatePicker
+              dateFormat="yyyy/MM/dd"
+              selected={this.state.startdate}
+              onChange={this.handleDateChange}
+            />
+          </Grid.Column>
+          <Grid.Column style={{ width: '85%', marginLeft: '2%' }}>
+            <Input
+              action={{
+                color: 'teal',
+                labelPosition: 'right',
+                icon: 'add',
+                content: 'New task',
+                onClick: this.onTodoCreate
+              }}
+              fluid
+              // actionPosition="left"
+              placeholder="To change the world..."
+              onChange={this.handleNameChange}
+            />
+          </Grid.Column>
+        </Grid.Row>
+        <Divider />
+      </React.Fragment>
     )
   }
 
@@ -186,8 +202,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   renderTodosList() {
+    console.log(this.state.todos)
     return (
       <Grid padded>
+        <Header as="h3">Your Todos</Header>
         {this.state.todos.map((todo, pos) => {
           return (
             <Grid.Row key={todo.todoId}>
@@ -203,7 +221,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
               <Grid.Column width={3} floated="right">
                 {todo.dueDate}
               </Grid.Column>
-              {this.state.attachmentUrl == '' ? (
+              {todo.attachmentUrl == undefined ? (
                 <Grid.Column width={1} floated="right">
                   <Button
                     icon
@@ -215,7 +233,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                 </Grid.Column>
               ) : (
                 <Grid.Column width={1} floated="right">
-                  <a href={this.state.attachmentUrl}>link text</a>
+                  <a href={todo.attachmentUrl}>link text</a>
                 </Grid.Column>
               )}
               <Grid.Column width={1} floated="right">
@@ -241,6 +259,19 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   renderNextButton() {
-    return <Button color="blue">Click Here</Button>
+    return (
+      <Grid>
+        <Grid.Column textAlign="center">
+          <Button
+            color="blue"
+            onClick={() => this.onTodoShowMore()}
+            textalign="center"
+            size="big"
+          >
+            Show More
+          </Button>
+        </Grid.Column>
+      </Grid>
+    )
   }
 }
