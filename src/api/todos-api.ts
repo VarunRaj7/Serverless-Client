@@ -36,6 +36,12 @@ export async function getTodos(
   }
   console.log('Todos:', response.data)
   // response.data.LastEvaluatedKey
+  if (lastKey === response.data.LastEvaluatedKey) {
+    return {
+      todos: [],
+      lastEvaluatedKey: lastKey
+    } as getTodosInterface
+  }
 
   const stateProps: getTodosInterface = {
     todos: response.data.Items,
@@ -49,7 +55,7 @@ export async function createTodo(
   idToken: string,
   newTodo: CreateTodoRequest
 ): Promise<Todo> {
-  console.log(JSON.stringify(newTodo))
+  // console.log(JSON.stringify(newTodo))
   const response = await Axios.post(
     `${apiEndpoint}/todos`,
     JSON.stringify(newTodo),

@@ -22,7 +22,8 @@ import {
   Input,
   Image,
   Loader,
-  Popup
+  Popup,
+  Dropdown
 } from 'semantic-ui-react'
 
 import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
@@ -41,6 +42,7 @@ interface TodosState {
   loadingTodos: boolean
   startdate: Date
   lastEvaluatedKey?: string
+  sortBy: boolean
 }
 
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
@@ -49,7 +51,8 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     newTodoName: '',
     newTodoDueDate: moment(new Date()).format().substring(0, 10), //new Date().toISOString().substring(0, 10),
     loadingTodos: true,
-    startdate: new Date()
+    startdate: new Date(),
+    sortBy: true
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,6 +148,25 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     })
   }
 
+  sortBypflag = async () => {
+    this.setState((state) => {
+      const todos = state.todos.sort(
+        (t1, t2) => Number(t2.pflag) - Number(t1.pflag)
+      )
+      return { todos, sortBy: false }
+    })
+    console.log(`state after sort ${this.state}`)
+  }
+
+  sortBydueDate = async () => {
+    this.setState((state) => {
+      const todos = state.todos.sort((t1, t2) =>
+        t1.dueDate.localeCompare(t2.dueDate)
+      )
+      return { todos, sortBy: true }
+    })
+  }
+
   async componentDidMount() {
     try {
       const resp = await getTodos(this.props.auth.getIdToken())
@@ -178,7 +200,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   renderCreateTodoInput() {
     return (
       <React.Fragment>
-        <Header as="h3">Create new Todos</Header>
+        <Header as="h2">Create new Todos</Header>
         <Grid.Row style={{ display: 'flex' }}>
           <Grid.Column>
             <DatePicker
@@ -227,10 +249,35 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   renderTodosList() {
-    console.log(this.state.todos)
+    // console.log(this.state.todos)
     return (
       <Grid padded>
-        <Header as="h3">Your Todos</Header>
+        <Grid.Row style={{ paddingBottom: '20px' }}>
+          <Grid.Column width={14}>
+            <Header as="h2">Your Todos</Header>
+          </Grid.Column>
+          <Dropdown
+            text="Filter"
+            icon="filter"
+            floating
+            labeled
+            button
+            className="icon"
+          >
+            <Dropdown.Menu>
+              <Dropdown.Header icon="tags" content="Filter by" />
+              <Dropdown.Divider />
+              <Dropdown.Item onClick={() => this.sortBydueDate()}>
+                <Icon name="calendar" className="right floated" />
+                Due Date
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => this.sortBypflag()}>
+                <Icon name="flag" className="right floated" />
+                Priority
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </Grid.Row>
         <Grid.Row>
           <Grid.Column width={1} verticalAlign="middle">
             <Header as="h5">Done</Header>
@@ -332,14 +379,19 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     return (
       <Grid>
         <Grid.Column textAlign="center">
-          <Button
-            color="blue"
-            onClick={() => this.onTodoShowMore()}
-            textalign="center"
-            size="big"
-          >
-            Show More
-          </Button>
+          <Popup
+            content="Requires atleast 10 items to show more in your todo list"
+            trigger={
+              <Button
+                color="blue"
+                onClick={() => this.onTodoShowMore()}
+                textalign="center"
+                size="big"
+              >
+                Show More
+              </Button>
+            }
+          />
         </Grid.Column>
       </Grid>
     )
