@@ -114,7 +114,7 @@ export async function getUploadUrl(
   filename: string
 ): Promise<string> {
   const response = await Axios.post(
-    `${apiEndpoint}/todos/${todoId}/attachment?name=${filename}`,
+    `${apiEndpoint}/todos/${todoId}/attachment?filename=${filename}`,
     '',
     {
       headers: {

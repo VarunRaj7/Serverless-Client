@@ -8,6 +8,8 @@ import moment from 'moment'
 import 'react-datepicker/dist/react-datepicker.css'
 import '../App.css'
 
+import imgIcon from '../img/imgIcon.png'
+
 import {
   Button,
   Checkbox,
@@ -17,7 +19,8 @@ import {
   Icon,
   Input,
   Image,
-  Loader
+  Loader,
+  Popup
 } from 'semantic-ui-react'
 
 import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
@@ -137,7 +140,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   render() {
     return (
       <div>
-        <Header as="h1" textAlign="center">
+        <Header as="h1" textAlign="center" style={{ paddingTop: '3%' }}>
           TODOs
         </Header>
 
@@ -218,8 +221,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
               <Grid.Column width={10} verticalAlign="middle">
                 {todo.name}
               </Grid.Column>
-              <Grid.Column width={3} floated="right">
-                {todo.dueDate}
+              <Grid.Column width={3} floated="right" verticalAlign="middle">
+                {todo.dueDate == moment(new Date()).format().substring(0, 10)
+                  ? 'Today'
+                  : todo.dueDate}
               </Grid.Column>
               {todo.attachmentUrl == undefined ? (
                 <Grid.Column width={1} floated="right">
@@ -233,7 +238,12 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                 </Grid.Column>
               ) : (
                 <Grid.Column width={1} floated="right">
-                  <a href={todo.attachmentUrl}>link text</a>
+                  <Popup
+                    content={
+                      <Image src={todo.attachmentUrl} size="small" wrapped />
+                    }
+                    trigger={<Image src={imgIcon} size="tiny" />}
+                  />
                 </Grid.Column>
               )}
               <Grid.Column width={1} floated="right">
@@ -245,9 +255,9 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                   <Icon name="delete" />
                 </Button>
               </Grid.Column>
-              {todo.attachmentUrl && (
+              {/* {todo.attachmentUrl && (
                 <Image src={todo.attachmentUrl} size="small" wrapped />
-              )}
+              )} */}
               <Grid.Column width={16}>
                 <Divider />
               </Grid.Column>
