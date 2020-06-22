@@ -9,6 +9,8 @@ import 'react-datepicker/dist/react-datepicker.css'
 import '../App.css'
 
 import imgIcon from '../img/imgIcon.png'
+import flagIcon0 from '../img/flag0.png'
+import flagIcon1 from '../img/flag1.png'
 
 import {
   Button,
@@ -99,7 +101,8 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
         name: todo.name,
         dueDate: todo.dueDate,
-        done: !todo.done
+        done: !todo.done,
+        pflag: todo.pflag
       })
       this.setState({
         todos: update(this.state.todos, {
@@ -108,6 +111,25 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       })
     } catch {
       alert('Todo deletion failed')
+    }
+  }
+
+  onTodoPflag = async (pos: number) => {
+    try {
+      const todo = this.state.todos[pos]
+      await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
+        name: todo.name,
+        dueDate: todo.dueDate,
+        done: todo.done,
+        pflag: !todo.pflag
+      })
+      this.setState({
+        todos: update(this.state.todos, {
+          [pos]: { pflag: { $set: !todo.pflag } }
+        })
+      })
+    } catch {
+      alert('Todo Priority change failed')
     }
   }
 
@@ -209,6 +231,29 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     return (
       <Grid padded>
         <Header as="h3">Your Todos</Header>
+        <Grid.Row>
+          <Grid.Column width={1} verticalAlign="middle">
+            <Header as="h5">Done</Header>
+          </Grid.Column>
+          <Grid.Column width={9} verticalAlign="middle">
+            <Header as="h5">Task</Header>
+          </Grid.Column>
+          <Grid.Column width={3} floated="right" verticalAlign="middle">
+            <Header as="h5">Due Date</Header>
+          </Grid.Column>
+          <Grid.Column width={1} floated="right">
+            <Header as="h5">Priority</Header>
+          </Grid.Column>
+          <Grid.Column width={1} floated="right">
+            <Header as="h5">File</Header>
+          </Grid.Column>
+          <Grid.Column width={1} floated="right">
+            <Header as="h5">Delete</Header>
+          </Grid.Column>
+          <Grid.Column width={16}>
+            <Divider />
+          </Grid.Column>
+        </Grid.Row>
         {this.state.todos.map((todo, pos) => {
           return (
             <Grid.Row key={todo.todoId}>
@@ -218,13 +263,28 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                   checked={todo.done}
                 />
               </Grid.Column>
-              <Grid.Column width={10} verticalAlign="middle">
+              <Grid.Column width={9} verticalAlign="middle">
                 {todo.name}
               </Grid.Column>
               <Grid.Column width={3} floated="right" verticalAlign="middle">
                 {todo.dueDate == moment(new Date()).format().substring(0, 10)
                   ? 'Today'
                   : todo.dueDate}
+              </Grid.Column>
+              <Grid.Column width={1} floated="right">
+                {todo.pflag ? (
+                  <Image
+                    src={flagIcon1}
+                    size="mini"
+                    onClick={() => this.onTodoPflag(pos)}
+                  />
+                ) : (
+                  <Image
+                    src={flagIcon0}
+                    size="mini"
+                    onClick={() => this.onTodoPflag(pos)}
+                  />
+                )}
               </Grid.Column>
               {todo.attachmentUrl == undefined ? (
                 <Grid.Column width={1} floated="right">
@@ -242,7 +302,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                     content={
                       <Image src={todo.attachmentUrl} size="small" wrapped />
                     }
-                    trigger={<Image src={imgIcon} size="tiny" />}
+                    trigger={<Image src={imgIcon} />}
                   />
                 </Grid.Column>
               )}
