@@ -23,10 +23,17 @@ import {
   Image,
   Loader,
   Popup,
-  Dropdown
+  Dropdown,
+  Search
 } from 'semantic-ui-react'
 
-import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
+import {
+  createTodo,
+  deleteTodo,
+  getTodos,
+  patchTodo,
+  getSearchTodos
+} from '../api/todos-api'
 import Auth from '../auth/Auth'
 import { Todo } from '../types/Todo'
 
@@ -43,6 +50,9 @@ interface TodosState {
   startdate: Date
   lastEvaluatedKey?: string
   sortBy: boolean
+  search: boolean
+  searchStr: string
+  searchFrom: number
 }
 
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
@@ -52,7 +62,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     newTodoDueDate: moment(new Date()).format().substring(0, 10), //new Date().toISOString().substring(0, 10),
     loadingTodos: true,
     startdate: new Date(),
-    sortBy: true
+    sortBy: true,
+    searchStr: '',
+    search: false,
+    searchFrom: 0
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,15 +150,27 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   onTodoShowMore = async () => {
-    const resp = await getTodos(
-      this.props.auth.getIdToken(),
-      undefined,
-      this.state.lastEvaluatedKey
-    )
-    this.setState((state) => {
-      const todos = [...state.todos, ...resp.todos]
-      return { todos: todos, lastEvaluatedKey: resp.lastEvaluatedKey }
-    })
+    if (!this.state.search) {
+      const resp = await getTodos(
+        this.props.auth.getIdToken(),
+        undefined,
+        this.state.lastEvaluatedKey
+      )
+      this.setState((state) => {
+        const todos = [...state.todos, ...resp.todos]
+        return { todos: todos, lastEvaluatedKey: resp.lastEvaluatedKey }
+      })
+    } else {
+      const resp = await getSearchTodos(
+        this.props.auth.getIdToken(),
+        this.state.searchStr,
+        this.state.searchFrom
+      )
+      this.setState((state) => {
+        const todos = [...state.todos, ...resp.todos]
+        return { todos: todos, searchFrom: resp.from }
+      })
+    }
   }
 
   sortBypflag = async () => {
@@ -179,6 +204,22 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     } catch (e) {
       alert(`Failed to fetch todos: ${e.message}`)
     }
+  }
+
+  handleTodoSearch = async () => {
+    console.log(`Clicked Search button ${this.state.searchStr}`)
+    const resp = await getSearchTodos(
+      this.props.auth.getIdToken(),
+      this.state.searchStr
+    )
+    this.setState({
+      todos: resp.todos,
+      searchFrom: resp.from
+    })
+  }
+
+  handleSearchInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ searchStr: event.target.value })
   }
 
   render() {
@@ -253,9 +294,23 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     return (
       <Grid padded>
         <Grid.Row style={{ paddingBottom: '20px' }}>
-          <Grid.Column width={14}>
+          <Grid.Column width={10}>
             <Header as="h2">Your Todos</Header>
           </Grid.Column>
+          <Input
+            icon={
+              <Icon
+                name="search"
+                inverted
+                circular
+                link
+                onClick={() => this.handleTodoSearch()}
+              />
+            }
+            placeholder="Search..."
+            onChange={this.handleSearchInput}
+          />
+          <Grid.Column width={1}></Grid.Column>
           <Dropdown
             text="Filter"
             icon="filter"
